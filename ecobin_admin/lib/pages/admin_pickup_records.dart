@@ -1,5 +1,5 @@
-import 'package:ecobin_admin/services/firebase_services.dart';
 import 'package:flutter/material.dart';
+import 'package:ecobin_admin/services/firebase_services.dart';
 import 'package:ecobin_admin/models/pickup_request.dart';
 import 'package:logger/logger.dart';
 import 'package:intl/intl.dart';
@@ -13,88 +13,276 @@ class _AdminPickupRecordsPageState extends State<AdminPickupRecordsPage> {
   final FirebaseService _firebaseService = FirebaseService();
   final Logger _logger = Logger();
   DateTime? _selectedDate;
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Color(0xFF27AE60),
-        title: Text(
-          'User Pickup Records',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        backgroundColor: const Color(0xFF27AE60),
+        elevation: 0,
+        title: const Text(
+          'User Pickup Requests',
+          style: TextStyle(
+              color: Color.fromARGB(255, 255, 255, 255),
+              fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.calendar_today,
-              color: const Color.fromARGB(255, 53, 53, 53),
-            ),
+            icon: const Icon(Icons.calendar_today,
+                color: Color.fromARGB(255, 255, 255, 255)),
             onPressed: () => _selectDate(context),
           ),
         ],
       ),
       body: Column(
         children: [
-          if (_selectedDate != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Chip(
-                label: Text(
-                  'Filtered: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}',
-                ),
-                onDeleted: () {
-                  setState(() {
-                    _selectedDate = null;
-                  });
-                },
-              ),
-            ),
+          _buildSearchBar(),
+          if (_selectedDate != null) _buildDateFilter(),
           Expanded(
-            child: StreamBuilder<List<PickupRequest>>(
-              stream: _firebaseService.getAllPickupRequests(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  _logger
-                      .e('Error fetching pickup requests: ${snapshot.error}');
-                  return _buildErrorMessage('Error fetching pickup requests.');
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildErrorMessage('No pickup requests found.');
-                }
-
-                List<PickupRequest> filteredRequests =
-                    _filterRequests(snapshot.data!);
-
-                return ListView.builder(
-                  itemCount: filteredRequests.length,
-                  itemBuilder: (context, index) {
-                    PickupRequest request = filteredRequests[index];
-                    return AdminPickupRecordCard(
-                      request: request,
-                      onStatusUpdate: (String newStatus) {
-                        _updateRequestStatus(request.id!, newStatus);
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+            child: _buildTable(),
           ),
         ],
       ),
     );
   }
 
-  List<PickupRequest> _filterRequests(List<PickupRequest> requests) {
-    if (_selectedDate == null) {
-      return requests;
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: TextField(
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+            _logger.i('Search query updated: $_searchQuery');
+          });
+        },
+        decoration: InputDecoration(
+          hintText: 'Search requests',
+          iconColor: Colors.white,
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.grey[200],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Row(
+        children: [
+          const Text('Filtered by: ',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          Chip(
+            label: Text(
+              DateFormat('yyyy-MM-dd').format(_selectedDate!),
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: const Color.fromARGB(255, 65, 189, 116),
+            deleteIcon: const Icon(Icons.close, color: Colors.white),
+            onDeleted: () {
+              setState(() {
+                _logger.i('Date filter cleared');
+                _selectedDate = null;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTable() {
+    return StreamBuilder<List<PickupRequest>>(
+      stream: _firebaseService.getAllPickupRequests(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          _logger.e('Error fetching pickup requests: ${snapshot.error}');
+          return _buildErrorMessage('Error fetching pickup requests.');
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          _logger.w('No pickup requests found');
+          return _buildErrorMessage('No pickup requests found.');
+        }
+
+        List<PickupRequest> filteredRequests = _filterRequests(snapshot.data!);
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(Colors.grey[50]),
+              dataRowColor: MaterialStateProperty.resolveWith<Color?>(
+                  (Set<MaterialState> states) {
+                if (states.contains(MaterialState.selected)) {
+                  return Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withOpacity(0.08);
+                }
+                return null;
+              }),
+              columnSpacing: 20,
+              horizontalMargin: 20,
+              columns: [
+                DataColumn(label: _buildColumnHeader('ID')),
+                DataColumn(label: _buildColumnHeader('Date')),
+                DataColumn(label: _buildColumnHeader('Time')),
+                DataColumn(label: _buildColumnHeader('Address')),
+                DataColumn(label: _buildColumnHeader('Garbage Bins')),
+                DataColumn(label: _buildColumnHeader('Total Payment')),
+                DataColumn(label: _buildColumnHeader('Status')),
+                DataColumn(label: _buildColumnHeader('Actions')),
+              ],
+              rows: filteredRequests
+                  .map((request) => _buildDataRow(request))
+                  .toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildColumnHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        text,
+        style:
+            const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+      ),
+    );
+  }
+
+  DataRow _buildDataRow(PickupRequest request) {
+    return DataRow(
+      cells: [
+        DataCell(Text(request.id ?? '',
+            style: const TextStyle(
+                color: Colors.blue, fontWeight: FontWeight.w500))),
+        DataCell(Text(DateFormat.yMMMd().format(request.pickupDate.toLocal()))),
+        DataCell(Text(request.pickupTime ?? 'N/A')),
+        DataCell(Text(request.userAddress)),
+        DataCell(Text(request.garbageBinDetails
+            .map((bin) => "${bin['type']}: ${bin['percentage']}%")
+            .join(', '))),
+        DataCell(Text(
+          'LKR ${request.totalPayment.toStringAsFixed(2)}',
+          style:
+              const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+        )),
+        DataCell(_buildStatusDropdown(request)),
+        DataCell(
+          IconButton(
+            icon: const Icon(Icons.delete,
+                color: Color.fromARGB(255, 176, 27, 16)),
+            onPressed: () => _showDeleteConfirmation(request),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusDropdown(PickupRequest request) {
+    List<String> statusOptions = ['Pending', 'Completed', 'Cancelled'];
+
+    // Ensure the status is valid and not null.
+    String currentStatus =
+        statusOptions.contains(request.status) ? request.status : 'Pending';
+
+    return DropdownButton<String>(
+      value: currentStatus,
+      isExpanded: true,
+      items: statusOptions.map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Row(
+            children: [
+              _buildStatusChip(value),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  value,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              )
+            ],
+          ),
+        );
+      }).toList(),
+      onChanged: (String? newStatus) {
+        if (newStatus != null && newStatus != currentStatus) {
+          _updateRequestStatus(request.id!, newStatus);
+        }
+      },
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color chipColor;
+    IconData iconData;
+    switch (status.toLowerCase()) {
+      case 'completed':
+        chipColor = const Color.fromARGB(255, 117, 159, 226);
+        iconData = Icons.check_circle;
+        break;
+      case 'pending':
+        chipColor = const Color.fromARGB(255, 126, 233, 142);
+        iconData = Icons.access_time;
+        break;
+      case 'cancelled':
+        chipColor = const Color.fromARGB(255, 231, 134, 127);
+        iconData = Icons.cancel;
+        break;
+      default:
+        chipColor = Colors.grey;
+        iconData = Icons.help;
     }
+
+    return Chip(
+      label: Text(status,
+          style: const TextStyle(color: Colors.white, fontSize: 12)),
+      backgroundColor: chipColor,
+      avatar: Icon(iconData, color: Colors.white, size: 16),
+    );
+  }
+
+  List<PickupRequest> _filterRequests(List<PickupRequest> requests) {
     return requests.where((request) {
-      return DateUtils.isSameDay(request.pickupDate, _selectedDate);
+      bool dateMatches = _selectedDate == null ||
+          DateUtils.isSameDay(request.pickupDate, _selectedDate);
+      bool searchMatches = _searchQuery.isEmpty ||
+          request.userAddress
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase()) ||
+          request.id!.toLowerCase().contains(_searchQuery.toLowerCase());
+      return dateMatches && searchMatches;
     }).toList();
   }
 
@@ -102,11 +290,12 @@ class _AdminPickupRecordsPageState extends State<AdminPickupRecordsPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
+        _logger.i('Date selected: ${picked.toIso8601String()}');
         _selectedDate = picked;
       });
     }
@@ -115,10 +304,62 @@ class _AdminPickupRecordsPageState extends State<AdminPickupRecordsPage> {
   void _updateRequestStatus(String requestId, String newStatus) async {
     try {
       await _firebaseService.updatePickupRequestStatus(requestId, newStatus);
-      _logger.i('Status updated successfully for request: $requestId');
+      _logger.i(
+          'Pickup request status updated to $newStatus for request ID: $requestId');
     } catch (e) {
-      _logger.e('Error updating status for request $requestId: $e');
-      _showSnackBar('Error updating status. Please try again.');
+      _logger.e('Error updating pickup request status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error updating status.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showDeleteConfirmation(PickupRequest request) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Delete'),
+          content: Text('Are you sure you want to delete this request?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                _deletePickupRequest(request.id!);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deletePickupRequest(String requestId) async {
+    try {
+      await _firebaseService.deletePickupRequest(requestId);
+      _logger.i('Pickup request deleted successfully: $requestId');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pickup request deleted successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      _logger.e('Error deleting pickup request: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error deleting request.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -126,141 +367,8 @@ class _AdminPickupRecordsPageState extends State<AdminPickupRecordsPage> {
     return Center(
       child: Text(
         message,
-        style: TextStyle(color: Colors.red, fontSize: 18),
+        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
       ),
-    );
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-}
-
-class AdminPickupRecordCard extends StatelessWidget {
-  final PickupRequest request;
-  final Function(String) onStatusUpdate;
-
-  const AdminPickupRecordCard({
-    Key? key,
-    required this.request,
-    required this.onStatusUpdate,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(20),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 16),
-            _buildDateTimeRow(),
-            const SizedBox(height: 16),
-            _buildAddressRow(),
-            const SizedBox(height: 16),
-            _buildStatusDropdown(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(
-          child: Text(
-            'Request ID: ${request.id}',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        _buildStatusChip(),
-      ],
-    );
-  }
-
-  Widget _buildStatusChip() {
-    return Chip(
-      label: Text(
-        request.status,
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      backgroundColor: _getStatusColor(),
-    );
-  }
-
-  Color _getStatusColor() {
-    switch (request.status.toLowerCase()) {
-      case 'completed':
-        return const Color.fromARGB(255, 96, 112, 169);
-      case 'pending':
-        return const Color.fromARGB(255, 156, 208, 131);
-      case 'cancelled':
-        return const Color.fromARGB(255, 208, 128, 122);
-      default:
-        return const Color.fromARGB(255, 174, 174, 174);
-    }
-  }
-
-  Widget _buildDateTimeRow() {
-    String formattedDate =
-        DateFormat.yMMMd().format(request.pickupDate.toLocal());
-    String formattedTime = request.pickupTime ?? "N/A";
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildInfoItem(Icons.calendar_today, 'Date', formattedDate),
-        _buildInfoItem(Icons.access_time, 'Time', formattedTime),
-      ],
-    );
-  }
-
-  Widget _buildInfoItem(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 4),
-        Text('$label: $value', style: TextStyle(fontSize: 14)),
-      ],
-    );
-  }
-
-  Widget _buildAddressRow() {
-    return Text(
-      'Address: ${request.userAddress}',
-      style: TextStyle(fontSize: 14),
-    );
-  }
-
-  Widget _buildStatusDropdown() {
-    return DropdownButton<String>(
-      value: request.status,
-      items: ['pending', 'completed', 'cancelled'].map((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(value),
-        );
-      }).toList(),
-      onChanged: (String? newValue) {
-        if (newValue != null) {
-          onStatusUpdate(newValue);
-        }
-      },
     );
   }
 }

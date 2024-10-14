@@ -32,4 +32,15 @@ class FirebaseService {
       throw Exception("Failed to update request status: $e");
     }
   }
+
+  Future<void> deletePickupRequest(String requestId) async {
+    try {
+      _logger.i('Deleting pickup request: $requestId');
+      await _firestore.collection('pickupRequests').doc(requestId).delete();
+      _logger.i('Pickup request deleted successfully: $requestId');
+    } catch (e) {
+      _logger.e('Error deleting pickup request: $requestId, Error: $e');
+      throw Exception("Failed to delete pickup request: $e");
+    }
+  }
 }
