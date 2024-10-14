@@ -12,8 +12,9 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  //create a obj form Authservice
+  // Create an AuthService instance
   final AuthServices _auth = AuthServices();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -22,9 +23,10 @@ class _HomeState extends State<Home> {
         appBar: AppBar(
           title: const Text(
             'Home',
-            style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+            style: TextStyle(color: Colors.white),
           ),
           backgroundColor: const Color(0Xff27AE60),
+          centerTitle: true, // This centers the title
           actions: [
             ElevatedButton(
               style: const ButtonStyle(
@@ -38,45 +40,114 @@ class _HomeState extends State<Home> {
           ],
         ),
         body: Padding(
-          padding: EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(20.0),
           child: Center(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  "HOME",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800),
-                ),
                 const SizedBox(height: 30),
-                const SizedBox(height: 60),
-                Center(
-                  child: Image.asset(
-                    "assets/images/man.png",
-                    height: 200,
+                // First Card: Pickup Records
+                Card(
+                  color: const Color(0Xff27AE60),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => AdminPickupRecordsPage()),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 30.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          Icon(Icons.list_alt, color: Colors.white, size: 40),
+                          SizedBox(width: 20),
+                          Text(
+                            "Pickup Records",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => AdminPickupRecordsPage()),
-                    );
-                  },
-                  child: const Text("Pickup records"),
+                const SizedBox(height: 20.0),
+
+                // Second Card: Monitor Bin
+                Card(
+                  color: const Color(0Xff27AE60),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MonitorBin()),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 30.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          Icon(Icons.delete_outline,
+                              color: Colors.white, size: 40),
+                          SizedBox(width: 20),
+                          Text(
+                            "Monitor Bin",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 10.0),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => MonitorBin()),
-                    );
-                  },
-                  child: const Text("Monitor Bin"),
+                const SizedBox(height: 20.0),
+
+                // Third Card: Analytics
+                Card(
+                  color: const Color(0Xff27AE60),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  child: InkWell(
+                    onTap: () {
+                      // No action defined for Analytics yet
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 30.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          Icon(Icons.analytics_outlined,
+                              color: Colors.white, size: 40),
+                          SizedBox(width: 20),
+                          Text(
+                            "Analytics",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
