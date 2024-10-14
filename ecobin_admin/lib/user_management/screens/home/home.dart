@@ -1,3 +1,4 @@
+import 'package:ecobin_admin/pages/admin_pickup_records.dart';
 import 'package:ecobin_admin/user_management/services/auth.dart';
 
 import 'package:flutter/material.dart';
@@ -54,6 +55,16 @@ class _HomeState extends State<Home> {
                     "assets/images/man.png",
                     height: 200,
                   ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => AdminPickupRecordsPage()),
+                    );
+                  },
+                  child: const Text("Pickup records"),
                 ),
               ],
             ),
