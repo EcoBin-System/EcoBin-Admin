@@ -1,4 +1,5 @@
 import 'package:ecobin_admin/pages/admin_pickup_records.dart';
+import 'package:ecobin_admin/pages/monitor_bin.dart';
 import 'package:ecobin_admin/user_management/services/auth.dart';
 
 import 'package:flutter/material.dart';
@@ -65,6 +66,17 @@ class _HomeState extends State<Home> {
                     );
                   },
                   child: const Text("Pickup records"),
+                ),
+                const SizedBox(height: 10.0),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => MonitorBin()),
+                    );
+                  },
+                  child: const Text("Monitor Bin"),
                 ),
               ],
             ),
