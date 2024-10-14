@@ -1,5 +1,7 @@
+import 'package:ecobin_admin/pages/addtasks.dart';
 import 'package:ecobin_admin/pages/admin_pickup_records.dart';
 import 'package:ecobin_admin/pages/monitor_bin.dart';
+import 'package:ecobin_admin/pages/tasks.dart';
 import 'package:ecobin_admin/user_management/services/auth.dart';
 
 import 'package:flutter/material.dart';
@@ -106,6 +108,39 @@ class _HomeState extends State<Home> {
                           SizedBox(width: 20),
                           Text(
                             "Monitor Bin",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20.0),
+                Card(
+                  color: const Color(0Xff27AE60),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => TaskListPage()),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 30.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          Icon(Icons.task_alt, color: Colors.white, size: 40),
+                          SizedBox(width: 20),
+                          Text(
+                            "Tasks",
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
